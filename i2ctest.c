@@ -1,4 +1,5 @@
-/* REFERENCE https://raspberry-projects.com/pi/programming-in-c/i2c/using-the-i2c-interface */
+/* I2C REFERENCE https://raspberry-projects.com/pi/programming-in-c/i2c/using-the-i2c-interface */
+/* Magnetometer REFERENCE https://www.enib.fr/~kerhoas/rescapt_mpu9250.html */
 #include <unistd.h>				//Needed for I2C port
 #include <fcntl.h>				//Needed for I2C port
 #include <stdint.h>
@@ -29,7 +30,7 @@ int main()
 	}
 
 	int addr = 0x68;          //<<<<<The I2C address of the slave
-	int addr_mag = 0x48; 
+	int addr_mag = 0x0C; 
 	if (ioctl(file_i2c, I2C_SLAVE, addr) < 0)
 	{
 		printf("Failed to acquire bus access and/or talk to slave.\n");
@@ -40,9 +41,9 @@ int main()
 	{
 		printf("Failed to acquire bus access for magnetometer and/or talk to slave.\n");
 		//ERROR HANDLING; you can check errno to see what went wrong
-		//return -1 ;
+		return -1 ;
 	}
-	
+	i2c_smbus_write_byte_data(file_i2c, 0x37, 0x22);
 	/* New code */
 	while(1)
 	{
@@ -69,6 +70,8 @@ int main()
 		i2c_smbus_write_byte_data(file_i2c_mag, 0x0A, (1 << 4) | 0x06);		
 		/* Reading Magnetometer values */
 		uint32_t magStatus1 = 0;
+		uint32_t deviceID = i2c_smbus_read_byte_data( file_i2c_mag,0x00);
+		// printf("Device ID is %x\n",deviceID);
 		do
   		{
      			magStatus1 = i2c_smbus_read_byte_data( file_i2c_mag,0x02);
@@ -81,7 +84,7 @@ int main()
 		buffer[16] = i2c_smbus_read_byte_data(file_i2c_mag, 0x08); // MagnetometerZ High Byte
 		buffer[17] = i2c_smbus_read_byte_data(file_i2c_mag, 0x07); // MagnetometerZ Low Byte
 		
-		printf("Magnetometer values are %d, %d, %d, %d, %d, %d\n", buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17]);
+		// printf("Magnetometer values are %d, %d, %d, %d, %d, %d\n", buffer[12], buffer[13], buffer[14], buffer[15], buffer[16], buffer[17]);
 		/* Converting the accelerometer values into 16 bits */
 		ax = buffer[0] << 8 | buffer[1];
 		ay = buffer[2] << 8 | buffer[3];
@@ -93,42 +96,14 @@ int main()
 		gz = buffer[10] << 8 | buffer[11];
 
 		/* Converting the gyroscope values into 16 bits */
-		mx = (~buffer[12]) << 8 | (~buffer[13]) +1 ;
-		my = (~buffer[14]) << 8 | (~buffer[15]) + 1;
-		mz = (~buffer[16]) << 8 | (~buffer[17]) + 1;
+		mx = buffer[12] << 8 | buffer[13];
+		my = buffer[14] << 8 | buffer[15];
+		mz = buffer[16] << 8 | buffer[17];
 		
-		printf("The magnetometer values are %d, %d, %d\n", mx, my,mz);
+		//printf("The magnetometer values are %d, %d, %d\n", mx, my,mz);
 		MadgwickAHRSupdate((float)ax, (float)ay, (float)az, (float)gx, (float)gy, (float)gz, (float)mx, (float)my, (float)mz);	
-		int k = 0;
-		for(k = 0; k < 90000000; k++);
+		// int k = 0;
+		// for(k = 0; k < 90000000; k++);
 	}
-
-	/*New code */
-	
-	//----- READ BYTES -----
-	// length = 128;			//<<< Number of bytes to read
-	// if (read(file_i2c, buffer, length) != length)		//read() returns the number of bytes actually read, if it doesn't match then an error occurred (e.g. no response from the device)
-	// {
-	// 	//ERROR HANDLING: i2c transaction failed
-	// 	printf("Failed to read from the i2c bus.\n");
-	// }
-	// else
-	// {
-	// 	//printf("Data read: %s\n", buffer);
-	// 	//for (int i = 59; i < 73; i++)
-	// 	//	printf("%x: %x\n ", i,buffer[i]);
-	// }
-	// MadgwickAHRSupdate((float)buffer[59],(float)buffer[61],(float)buffer[63],(float)buffer[67],(float)buffer[69],(float)buffer[71],0,0,0);	
-
-	
-	// //----- WRITE BYTES -----
-	// buffer[0] = 0x01;
-	// buffer[1] = 0x02;
-	// length = 2;			//<<< Number of bytes to write
-	// if (write(file_i2c, buffer, length) != length)		//write() returns the number of bytes actually written, if it doesn't match then an error occurred (e.g. no response from the device)
-	// {
-	// 	/* ERROR HANDLING: i2c transaction failed */
-	// 	printf("Failed to write to the i2c bus.\n");
-	// } 
 }
 

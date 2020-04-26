@@ -124,6 +124,7 @@ union i2c_smbus_data {
 
 
 /* this is for i2c-dev.c	*/
+#define I2C_SLAVE_MAG   0x0C 
 #define I2C_SLAVE	0x0703	/* Change slave address			*/
 				/* Attn.: Slave address is 7 or 10 bits */
 #define I2C_SLAVE_FORCE	0x0706	/* Change slave address			*/
